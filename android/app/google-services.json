@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "355471488645",
+    "firebase_url": "https://patient-register-53a39.firebaseio.com",
+    "project_id": "patient-register-53a39",
+    "storage_bucket": "patient-register-53a39.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:355471488645:android:dc2841b0b1ff97be8c9bec",
+        "android_client_info": {
+          "package_name": "com.example.patient_register"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "355471488645-pph25s4gkshvsprpt6ur4ceoede931bc.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.patient_register",
+            "certificate_hash": "99a5a45395c7a3c929a61fd741a13410f6bf5e91"
+          }
+        },
+        {
+          "client_id": "355471488645-99cl856t02itoblv5utm39auouhisiai.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDb9cGi4N2PA2wkH70fijIstEbK_R-Dvqw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "355471488645-99cl856t02itoblv5utm39auouhisiai.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
