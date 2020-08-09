@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/services.dart';
 import 'package:patient_register/splash.dart';
 
 void main() => runApp(MyApp());
@@ -11,7 +12,7 @@ class MyApp extends StatefulWidget {
 
 
 class _MyAppState extends State<MyApp> {
-
+  static const MethodChannel platform = const MethodChannel('samples.flutter.dev/battery');
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
@@ -33,7 +34,7 @@ class _MyAppState extends State<MyApp> {
       debugShowCheckedModeBanner: true,
       initialRoute: '/splash',
       routes: {
-        '/splash': (context) => Splash(),
+        '/splash': (context) => Splash(platform: platform),
       },
     );
   }
