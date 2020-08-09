@@ -55,7 +55,7 @@ class _SplashState extends State<Splash> {
                     String name;
                     try {
                       final int result =
-                          await widget.platform.invokeMethod('getBatteryLevel');
+                          await widget.platform.invokeMethod('backupDb');
                       name = 'Battery level at $result % .';
                     } on PlatformException catch (e) {
                       name = "Failed to get battery level: '${e.message}'.";
@@ -65,14 +65,15 @@ class _SplashState extends State<Splash> {
                       _name = name;
                     });
                   },
-                  child: Text("Backup Database"),
+                  // child: Text("Backup Database"),
+                  child: Text(_name),
                 ),
                 RaisedButton(
                   onPressed: () async {
                     String name;
                     try {
                       final int result =
-                          await widget.platform.invokeMethod('getBatteryLevel');
+                          await widget.platform.invokeMethod('importDb');
                       name = 'Battery level at $result % .';
                     } on PlatformException catch (e) {
                       name = "Failed to get battery level: '${e.message}'.";
@@ -82,7 +83,8 @@ class _SplashState extends State<Splash> {
                       _name = name;
                     });
                   },
-                  child: Text("Import Database"),
+                  // child: Text("Import Database"),
+                  child: Text(_name),
                 )
               ],
             ),
