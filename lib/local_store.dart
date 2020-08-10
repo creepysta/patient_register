@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
@@ -44,6 +45,13 @@ class DatabaseProvider {
   Future<Database> _initDb() async {
     Directory documentsDirectory = await getApplicationDocumentsDirectory();
     String path = join(documentsDirectory.path, "register.db");
+    // String path = join(await getDatabasesPath(), "register.db");
+    // File prevFile = File(prevPath);
+    // if (prevFile.existsSync()) {
+    //   File currFile = File(path);
+    //   currFile.writeAsBytesSync(prevFile.readAsBytesSync());
+    // }
+    // prevFile.deleteSync();
     // deleteDatabase(path);
     final Database db = await openDatabase(path, version: 1,
         onCreate: (Database db, int version) async {
@@ -53,6 +61,27 @@ class DatabaseProvider {
           'CREATE TABLE `medicine` ( id integer primary key autoincrement, pid integer, medicine varchar(30), dose varchar(10), `visit-date` datetime )');
     });
     return db;
+  }
+
+  Future<String> test() async {
+    // String prevPath = join((await getApplicationDocumentsDirectory()).path, "prev.txt");
+    // String path = join(await getDatabasesPath(), "curr.txt");
+    // File _prevFile = File(prevPath);
+    // File _currFile = File(path);
+    // _prevFile.writeAsStringSync("previous file");
+    // print("before\n");
+    // print("from prevFile ${_prevFile.existsSync().readAsStringSync()}");
+    // // print("from currFile ${_currFile.readAsStringSync()}");
+    // if (_prevFile != null) {
+    //   _currFile.writeAsBytesSync(_prevFile.readAsBytesSync());
+    // }
+    // _prevFile.deleteSync();
+    // print("after\n");
+    // // print("from prevFile ${_prevFile.readAsStringSync()}");
+    // print("from currFile ${_currFile.readAsStringSync()}");
+    Directory check = await getExternalStorageDirectory();
+    print(check.path);
+    return "ok";
   }
 
   Future<void> newMed({int pid, String medicine, String dose}) async {
@@ -148,7 +177,7 @@ class DatabaseProvider {
     return retMeds;
   }
 
-  Future<void> backup() async {
+  Future<bool> backup() async {
     // Database db = await this.database;
     // Db mongodb = await this.mongodb;
     // var patientCol = mongodb.collection('patient');
@@ -161,7 +190,36 @@ class DatabaseProvider {
     //   }
     // }
     // prefs.setString('lastbackup', DateTime.now().toIso8601String());
-    return;
+    try {
+      Directory rootStore = await getApplicationDocumentsDirectory();
+      Directory extStorage = await getExternalStorageDirectory();
+      String prevPath = rootStore.path;
+      String extPath = extStorage.path;
+      String filePath = join(prevPath, "register.db");
+      String backupPath = join(extPath, "backup.db");
+      File file = File(filePath);
+      File backupFile = File(backupPath);
+      backupFile.writeAsBytesSync(file.readAsBytesSync());
+    } catch (e) {
+      print("Error-------------$e");
+      return false;
+    }
+    return true;
+  }
+
+  Future<bool> import() async {
+    try {
+      File file = await FilePicker.getFile();
+      Directory rootStore = await getApplicationDocumentsDirectory();
+      String dbPath = join(rootStore.path, 'register.db');
+      File db = File(dbPath);
+      db.writeAsBytesSync(file.readAsBytesSync());
+      await prefs.setBool('synced', true);
+    } catch (e) {
+      print("Error-------------$e");
+      return false;
+    }
+    return true;
   }
 
   Future<void> dosyncLocal() async {

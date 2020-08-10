@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -64,38 +65,99 @@ class _HomeState extends State<Home> {
                 .apply(bodyColor: Colors.white)
                 .headline6),
         actions: <Widget>[
-          Visibility(
-            visible: !kReleaseMode,
-            child: IconButton(
-              icon: Icon(Icons.delete),
-              onPressed: () async {
-                await DatabaseProvider.dp.wipe();
-                downloadNot.value = true;
-              },
-            ),
+          IconButton(
+            icon: Icon(Icons.backup),
+            onPressed: () async {
+              bool res = await DatabaseProvider.dp.backup();
+              if (res) {
+                Fluttertoast.showToast(
+                    msg: 'Backup Successful',
+                    gravity: ToastGravity.BOTTOM,
+                    toastLength: Toast.LENGTH_LONG,
+                    fontSize: 13,
+                    backgroundColor: Colors.black.withOpacity(0.7),
+                    textColor: Colors.white);
+                // Navigator.pushAndRemoveUntil(
+                //     context, MaterialPageRoute(builder: (context) => Home()),
+                //     (Route r) {
+                //   return r == null;
+                // });
+              } else {
+                Fluttertoast.showToast(
+                    msg: 'Backup Failed',
+                    gravity: ToastGravity.BOTTOM,
+                    toastLength: Toast.LENGTH_LONG,
+                    fontSize: 13,
+                    backgroundColor: Colors.black.withOpacity(0.7),
+                    textColor: Colors.white);
+                // Navigator.pushAndRemoveUntil(
+                //     context, MaterialPageRoute(builder: (context) => Home()),
+                //     (Route r) {
+                //   return r == null;
+                // });
+              }
+            },
           ),
           IconButton(
-            icon: downloadNot.value
-                ? Icon(syncIcon, color: Colors.white)
-                : Icon(syncIcon, color: Colors.white),
-            onPressed: downloadNot.value
-                ? () async {
-                    await DatabaseProvider.dp.synclocal();
-                    confirmAlert(context,
-                        title: 'Synced Successfully',
-                        content: 'Records synced',
-                        confirm: () => Navigator.pop(context),
-                        cancel: () => Navigator.pop(context));
-                  }
-                : () async {
-                    await DatabaseProvider.dp.backup();
-                    confirmAlert(context,
-                        title: 'Backup Successful',
-                        content: 'Backup done',
-                        confirm: () => Navigator.pop(context),
-                        cancel: () => Navigator.pop(context));
-                  },
-          )
+            icon: Icon(Icons.cloud_download),
+            onPressed: () async {
+              bool res = await DatabaseProvider.dp.import();
+              if (res) {
+                Fluttertoast.showToast(
+                    msg: 'Database imported',
+                    gravity: ToastGravity.BOTTOM,
+                    toastLength: Toast.LENGTH_LONG,
+                    fontSize: 13,
+                    backgroundColor: Colors.black.withOpacity(0.7),
+                    textColor: Colors.white);
+                // Navigator.pushAndRemoveUntil(
+                //     context, MaterialPageRoute(builder: (context) => Home()),
+                //     (Route r) {
+                //   return r.isFirst;
+                // });
+              } else {
+                Fluttertoast.showToast(
+                    msg: 'Import failed',
+                    gravity: ToastGravity.BOTTOM,
+                    toastLength: Toast.LENGTH_LONG,
+                    fontSize: 13,
+                    backgroundColor: Colors.black.withOpacity(0.7),
+                    textColor: Colors.white);
+              }
+            },
+          ),
+          // Visibility(
+          //   visible: !kReleaseMode,
+          //   child: IconButton(
+          //     icon: Icon(Icons.delete),
+          //     onPressed: () async {
+          //       await DatabaseProvider.dp.wipe();
+          //       downloadNot.value = true;
+          //     },
+          //   ),
+          // ),
+          // IconButton(
+          //   icon: downloadNot.value
+          //       ? Icon(syncIcon, color: Colors.white)
+          //       : Icon(syncIcon, color: Colors.white),
+          //   onPressed: downloadNot.value
+          //       ? () async {
+          //           await DatabaseProvider.dp.synclocal();
+          //           confirmAlert(context,
+          //               title: 'Synced Successfully',
+          //               content: 'Records synced',
+          //               confirm: () => Navigator.pop(context),
+          //               cancel: () => Navigator.pop(context));
+          //         }
+          //       : () async {
+          //           await DatabaseProvider.dp.backup();
+          //           confirmAlert(context,
+          //               title: 'Backup Successful',
+          //               content: 'Backup done',
+          //               confirm: () => Navigator.pop(context),
+          //               cancel: () => Navigator.pop(context));
+          //         },
+          // )
         ],
       ),
       floatingActionButton: FloatingActionButton(
@@ -470,10 +532,10 @@ class _NewEntryState extends State<NewEntry> {
     buildPatient();
     refMeds.addListener(() async {
       print('---------------refMeds called------------');
-      if(widget.patient != null) {
-        if(widget.patient.pid != null) {
-          widget.patient.setPrevMeds =
-              await DatabaseProvider.dp.getMedsForPatient(pid: widget.patient.pid);
+      if (widget.patient != null) {
+        if (widget.patient.pid != null) {
+          widget.patient.setPrevMeds = await DatabaseProvider.dp
+              .getMedsForPatient(pid: widget.patient.pid);
 
           setState(() {});
         }
