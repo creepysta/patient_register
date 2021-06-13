@@ -16,7 +16,7 @@ class _MyAppState extends State<MyApp> {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: "TPF",
+      title: "Patient Register",
       theme: ThemeData(
         primaryTextTheme: TextTheme(
           bodyText1: TextStyle(fontSize: 15),

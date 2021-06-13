@@ -84,24 +84,49 @@ class DatabaseProvider {
     return "ok";
   }
 
-  Future<void> newMed({int pid, String medicine, String dose}) async {
+  Future<void> newMed(
+      {int pid, String medicine, String dose, String date = ''}) async {
     DateTime currTime = DateTime.now();
-    String date = currTime.toIso8601String();
+    print("DATE FROM NEWMED $date");
+    if (date.isEmpty || date == null) date = currTime.toIso8601String();
     Medicine med =
         new Medicine(pid: pid, medicine: medicine, dose: dose, date: date);
     Database db = await this.database;
     await db.insert('`medicine`', med.toJson());
-    await db.update('`patient`',
-        {'`last-medicine`': medicine, '`last-dose`': dose, '`last-date`': date},
+    var query = await db.query('`patient`',
+        columns: ['`last-date`'], where: 'pid=?', whereArgs: [pid]);
+    print(query);
+    if (query.isNotEmpty) {
+      if (DateTime.parse(date).isAfter(DateTime.parse(query[0]['last-date']))) {
+        await db.update(
+            '`patient`',
+            {
+              '`last-medicine`': medicine,
+              '`last-dose`': dose,
+              '`last-date`': date
+            },
+            where: 'pid=?',
+            whereArgs: [pid]);
+      }
+    }
+    return;
+  }
+
+  Future<void> updateName({int pid, String name}) async {
+    Database db = await this.database;
+    await db.update('`patient`', {'`name`': name},
         where: 'pid=?', whereArgs: [pid]);
     return;
   }
 
   Future<void> newPatient(
-      {String name = '', String medicine = '', String dose = ''}) async {
+      {String name = '',
+      String medicine = '',
+      String dose = '',
+      String date = ''}) async {
     DateTime currTime = DateTime.now();
     int pid = currTime.millisecondsSinceEpoch;
-    String date = currTime.toIso8601String();
+    if (date.isEmpty || date == null) date = currTime.toIso8601String();
     Database db = await this.database;
     Patient patient = new Patient(name: name, pid: pid, lastDate: date);
     patient.setMed = medicine;
@@ -129,7 +154,7 @@ class DatabaseProvider {
     List res = await db.rawQuery(
         'select * from `medicine` where pid = ${med.pid} order by `visit-date` desc limit 1');
     print(res);
-    if(res.isEmpty) {
+    if (res.isEmpty) {
       await db.rawQuery('delete from `patient` where pid = ${med.pid}');
     } else {
       await db.update(

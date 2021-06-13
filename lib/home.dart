@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 import 'package:fluttertoast/fluttertoast.dart';
@@ -70,26 +71,14 @@ class _HomeState extends State<Home> {
             onPressed: () async {
               bool res = await DatabaseProvider.dp.backup();
               if (res) {
-                Fluttertoast.showToast(
-                    msg: 'Backup Successful',
-                    gravity: ToastGravity.BOTTOM,
-                    toastLength: Toast.LENGTH_LONG,
-                    fontSize: 13,
-                    backgroundColor: Colors.black.withOpacity(0.7),
-                    textColor: Colors.white);
+                showToast(msg: 'Backup Successful');
                 // Navigator.pushAndRemoveUntil(
                 //     context, MaterialPageRoute(builder: (context) => Home()),
                 //     (Route r) {
                 //   return r == null;
                 // });
               } else {
-                Fluttertoast.showToast(
-                    msg: 'Backup Failed',
-                    gravity: ToastGravity.BOTTOM,
-                    toastLength: Toast.LENGTH_LONG,
-                    fontSize: 13,
-                    backgroundColor: Colors.black.withOpacity(0.7),
-                    textColor: Colors.white);
+                showToast(msg: 'Backup Failed');
                 // Navigator.pushAndRemoveUntil(
                 //     context, MaterialPageRoute(builder: (context) => Home()),
                 //     (Route r) {
@@ -103,26 +92,14 @@ class _HomeState extends State<Home> {
             onPressed: () async {
               bool res = await DatabaseProvider.dp.import();
               if (res) {
-                Fluttertoast.showToast(
-                    msg: 'Database imported',
-                    gravity: ToastGravity.BOTTOM,
-                    toastLength: Toast.LENGTH_LONG,
-                    fontSize: 13,
-                    backgroundColor: Colors.black.withOpacity(0.7),
-                    textColor: Colors.white);
+                showToast(msg: 'Database imported');
                 // Navigator.pushAndRemoveUntil(
                 //     context, MaterialPageRoute(builder: (context) => Home()),
                 //     (Route r) {
                 //   return r.isFirst;
                 // });
               } else {
-                Fluttertoast.showToast(
-                    msg: 'Import failed',
-                    gravity: ToastGravity.BOTTOM,
-                    toastLength: Toast.LENGTH_LONG,
-                    fontSize: 13,
-                    backgroundColor: Colors.black.withOpacity(0.7),
-                    textColor: Colors.white);
+                showToast(msg: 'Import failed');
               }
             },
           ),
@@ -458,7 +435,7 @@ Widget patientTile(BuildContext context, {Patient patient}) {
               alignment: Alignment.centerRight,
               width: MediaQuery.of(context).size.width / 4.6,
               child: Text(
-                DateFormat('dd MMM, yy')
+                DateFormat('dd MMM, yyyy')
                     .format(DateTime.parse(patient.lastDate)),
                 style: Theme.of(context)
                     .textTheme
@@ -495,8 +472,8 @@ Widget medTile(BuildContext context, {Medicine med}) {
       Container(
           alignment: Alignment.center,
           width: width / 3.6,
-          child:
-              Text(DateFormat('dd MMM, yy').format(DateTime.parse(med.date)))),
+          child: Text(
+              DateFormat('dd MMM, yyyy').format(DateTime.parse(med.date)))),
     ]),
   );
 }
@@ -513,6 +490,8 @@ class _NewEntryState extends State<NewEntry> {
       med = new TextEditingController(),
       dose = new TextEditingController();
   bool _showList = false;
+  bool _datePicked = true;
+  String _pickedDate = DateTime.now().toIso8601String();
   Future<void> buildPatient() async {
     if (widget.patient == null) {
       return;
@@ -537,10 +516,14 @@ class _NewEntryState extends State<NewEntry> {
           widget.patient.setPrevMeds = await DatabaseProvider.dp
               .getMedsForPatient(pid: widget.patient.pid);
 
+          if(!mounted)
+            return;
           setState(() {});
         }
       }
     });
+    _datePicked = true;
+    _pickedDate = DateTime.now().toIso8601String();
     setState(() {});
   }
 
@@ -562,28 +545,50 @@ class _NewEntryState extends State<NewEntry> {
       floatingActionButton: FloatingActionButton(
         onPressed: () async {
           print('---------new entry----------');
-          if (name.text.trim().isEmpty ||
-              med.text.trim().isEmpty ||
-              dose.text.trim().isEmpty) {
-            Fluttertoast.showToast(
-                msg: 'Fill all fields',
-                gravity: ToastGravity.BOTTOM,
-                toastLength: Toast.LENGTH_LONG,
-                fontSize: 13,
-                backgroundColor: Colors.black.withOpacity(0.7),
-                textColor: Colors.white);
-            return;
+          String nowName = name.text.trim();
+          String nowMed = med.text.trim();
+          String nowDose = dose.text.trim();
+          // if all medicines are deletd, patient gets deleted in deleteMed func, so create new patient
+          if (widget.patient == null || widget.patient.prevMeds.isEmpty) {
+            if (nowName.isEmpty || nowMed.isEmpty || nowDose.isEmpty) {
+              showToast(msg: "Fill all fields");
+              return;
+            } else {
+              await DatabaseProvider.dp.newPatient(
+                  name: nowName,
+                  medicine: nowMed,
+                  dose: nowDose,
+                  date: _pickedDate);
+            }
           }
-          if (widget.patient != null) {
-            await DatabaseProvider.dp.newMed(
-                dose: dose.text.trim(),
-                medicine: med.text.trim(),
-                pid: widget.patient.pid);
-          } else {
-            await DatabaseProvider.dp.newPatient(
-                name: name.text.trim(),
-                medicine: med.text.trim(),
-                dose: dose.text.trim());
+          // just update name
+          //   only when widget.patient != null
+          //   and nowName not emtpy
+
+          // for new patient: patient name, dose, med not empty
+          // widget.patient != null, therefore update med
+          else {
+            // old patient
+            if (widget.patient.name != nowName) {
+              if (nowName.isEmpty) {
+                showToast(msg: "Please provide patient name");
+              } else {
+                await DatabaseProvider.dp
+                    .updateName(pid: widget.patient.pid, name: nowName);
+              }
+            }
+            if (nowMed.isNotEmpty || nowDose.isNotEmpty) {
+              if (nowMed.isNotEmpty && nowDose.isNotEmpty) {
+                await DatabaseProvider.dp.newMed(
+                    dose: nowDose,
+                    medicine: nowMed,
+                    pid: widget.patient.pid,
+                    date: _pickedDate);
+              } else {
+                showToast(msg: "Provide both dose and medicine");
+                return;
+              }
+            }
           }
           refHome.value = DateTime.now().millisecondsSinceEpoch;
           downloadNot.value = false;
@@ -594,15 +599,17 @@ class _NewEntryState extends State<NewEntry> {
       ),
       body: Container(
         padding: EdgeInsets.fromLTRB(10, 10, 10, 0),
+        width: MediaQuery.of(context).size.width,
         child: Column(
           mainAxisSize: MainAxisSize.max,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            formFields(context,
-                label: 'Name',
-                hint: 'Patient Name',
-                controller: name,
-                isenabled: widget.patient == null),
+            formFields(
+              context,
+              label: 'Name',
+              hint: 'Patient Name',
+              controller: name,
+            ), //isenabled: widget.patient == null),
             formFields(context,
                 label: 'Medicine Prescribed',
                 hint: 'Medicine name',
@@ -611,6 +618,60 @@ class _NewEntryState extends State<NewEntry> {
                 label: 'Interval between doses',
                 hint: 'Prescribed dosage',
                 controller: dose),
+            // Row(
+            //   children: <Widget>[
+            //     Container(
+            //       padding: EdgeInsets.fromLTRB(0, 20, 0, 0),
+            //       child: RaisedButton(
+            //         child: Text('Pick Date'),
+            //         onPressed: () {
+            //           setState(() {
+            //             _datePicked = !_datePicked;
+            //           });
+            //         },
+            //       ),
+            //     ),
+            //     SizedBox(width: 10),
+            //     Expanded(
+            //       child: formFields(
+            //         context,
+            //         label: "Date Prescribed",
+            //         isenabled: false,
+            //         text: _pickedDate.isNotEmpty ? DateFormat('dd MMM, yyyy').format(DateTime.parse(_pickedDate)) : '',
+            //       ),
+            //     ),
+            //   ],
+            // ),
+            GestureDetector(
+              onTap: () {
+                setState(() {
+                  _datePicked = !_datePicked;
+                });
+              },
+              child: formFields(
+                context,
+                label: "Date Prescribed",
+                isenabled: false,
+                text: DateFormat('dd MMM, yyyy')
+                    .format(DateTime.parse(_pickedDate)),
+              ),
+            ),
+            Visibility(
+              visible: !_datePicked,
+              child: Container(
+                width: MediaQuery.of(context).size.width,
+                height: MediaQuery.of(context).size.height / 3,
+                child: CalendarDatePicker(
+                    initialDate: DateTime.now(),
+                    firstDate: DateTime.fromMillisecondsSinceEpoch(0),
+                    lastDate: DateTime.now(),
+                    onDateChanged: (DateTime picked) {
+                      _datePicked = true;
+                      _pickedDate = picked.toIso8601String();
+                      setState(() {});
+                    }),
+              ),
+            ),
             Visibility(
               visible: _showList,
               child: Container(
@@ -686,9 +747,14 @@ Widget formFields(BuildContext context,
     {String label = '',
     TextEditingController controller,
     String hint = '',
+    String text = '',
     bool isenabled = true}) {
   double height = MediaQuery.of(context).size.height,
       witdth = MediaQuery.of(context).size.width;
+  if (controller == null) {
+    controller = TextEditingController();
+    controller.text = text;
+  }
   return Container(
     width: double.infinity,
     padding: EdgeInsets.fromLTRB(0, 5, 0, 5),
@@ -723,6 +789,16 @@ Widget formFields(BuildContext context,
   );
 }
 
+void showToast({@required String msg}) {
+  Fluttertoast.showToast(
+      msg: msg,
+      gravity: ToastGravity.BOTTOM,
+      toastLength: Toast.LENGTH_LONG,
+      fontSize: 13,
+      backgroundColor: Colors.black.withOpacity(0.7),
+      textColor: Colors.white);
+}
+
 void confirmAlert(BuildContext context,
     {String title = '',
     String content = '',
@@ -747,3 +823,66 @@ void confirmAlert(BuildContext context,
         );
       });
 }
+
+// Widget selectDate(BuildContext context) {
+//     return Column(
+//       children: <Widget>[
+//         Container(
+//           padding: EdgeInsets.only(left: 8.0),
+//           height: MediaQuery.of(context).size.height / 15,
+//           decoration: BoxDecoration(
+//             color: Colors.white,
+//             borderRadius: BorderRadius.all(
+//               Radius.circular(15 / 1920 * MediaQuery.of(context).size.height),
+//             ),
+//           ),
+//           child: DateTimeField(
+//             decoration: InputDecoration(
+//               border: InputBorder.none,
+//               contentPadding: EdgeInsets.symmetric(vertical: 20),
+//               // icon: Icon(Icons.calendar_today),
+//             ),
+//             format: DateFormat("yyyy-MM-dd HH:mm:ss"),
+//             // format: DateFormat("dd, MMM yyyy hh:mm a"),
+//             onShowPicker: (context, currentValue) async {
+//               DateTime date = (await showDatePicker(
+//                 context: context,
+//                 firstDate: DateTime(1900),
+//                 initialDate: currentValue ?? DateTime.now(),
+//                 lastDate: DateTime.now(),
+//               )); // .toString();
+//               // if(date == null) {
+//               // date = DateFormat('yyyy-MM-dd').parse(DateTime.now().toString());// DateFormat('yyyy-mm-dd').format(DateTime.now());
+//               // }
+//               if (date != null) {
+//                 TimeOfDay time = (await showTimePicker(
+//                     context: context,
+//                     initialTime: TimeOfDay.fromDateTime(
+//                         currentValue ?? DateTime.now()))); //.toString();
+//                 return DateTimeField.combine(date, time);
+//               } else {
+//                 return currentValue;
+//               }
+//               // if(time == null) {
+//               //   time = DateFormat('HH:mm:ss').format(DateTime.now());
+//               // }
+//               // dateTimeText = '$date $time';
+//               // setState(() {});
+//               // return DateTimeField.combine(DateTime.parse(date), TimeOfDay.fromDateTime(DateTime.parse(time)));
+//               // return DateTimeField.combine(date, time);
+//             },
+//             controller: dateCtrl,
+//             readOnly: true,
+//             onChanged: (DateTime dt) {
+//               // print(dt);
+//               if (dt != null) {
+//                 dateTimeText = DateFormat('yyyy-MM-dd HH:mm:ss').format(dt);
+//                 // print(dateTimeText);
+//               }
+//               setState(() {});
+//             },
+//           ),
+//         ),
+//       ],
+//     );
+//   }
