@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:path/path.dart';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
@@ -6,10 +7,27 @@ import 'package:flutter/gestures.dart';
 import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:patient_register/globals.dart';
 import 'package:patient_register/local_store.dart';
 import 'package:patient_register/medicine.dart';
 import 'package:patient_register/patient.dart';
+import 'package:flutter/services.dart';
+import 'package:http/http.dart' as http;
+import 'package:googleapis/drive/v3.dart' as drive;
+import 'package:google_sign_in/google_sign_in.dart' as signIn;
+
+class GoogleAuthClient extends http.BaseClient {
+  final Map<String, String> _headers;
+
+  final http.Client _client = new http.Client();
+
+  GoogleAuthClient(this._headers);
+
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    return _client.send(request..headers.addAll(_headers));
+  }
+}
 
 class Home extends StatefulWidget {
   @override
@@ -21,15 +39,20 @@ class _HomeState extends State<Home> {
   bool _hasSearched = false;
   final TextEditingController nameController = new TextEditingController();
   IconData syncIcon;
+
+  // Method Channel
+  static const platform =
+      const MethodChannel('com.example.patient_register/service');
+
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     refHome.addListener(() async {
       if (_hasSearched) {
         patients.clear();
         List res = await DatabaseProvider.dp.search(nameController.text);
         patients = res;
+        if (!mounted) return;
         setState(() {});
       }
     });
@@ -48,10 +71,56 @@ class _HomeState extends State<Home> {
     setState(() {});
   }
 
+  Future<void> startService() async {
+    if (Platform.isAndroid) {
+      try {
+        final result = await platform.invokeMethod(
+            'getService', <String, String>{"url": "parameter passed"});
+        print(result);
+      } on PlatformException catch (e) {
+        debugPrint(e.message);
+      }
+    }
+  }
+
+  Future<void> accountSignIn() async {
+// google signin
+    // final googleSignIn =
+    //     signIn.GoogleSignIn.standard(scopes: [drive.DriveApi.driveScope]);
+    // final signIn.GoogleSignInAccount account = await googleSignIn.signIn();
+    // print("User account $account");
+  }
+
+  Future<void> uploadFile() async {
+    final googleSignIn =
+        signIn.GoogleSignIn.standard(scopes: [drive.DriveApi.driveScope]);
+    final signIn.GoogleSignInAccount account = await googleSignIn.signIn();
+    print("User account $account");
+// file
+    final authHeaders = await account.authHeaders;
+    final authenticateClient = GoogleAuthClient(authHeaders);
+    final driveApi = drive.DriveApi(authenticateClient);
+    File toUpload = File(
+        join((await getApplicationDocumentsDirectory()).path, "register.db"));
+    Stream<List<int>> mediaStream =
+        toUpload.openRead().asBroadcastStream();
+    int len = toUpload.lengthSync();
+    drive.Media media = new drive.Media(mediaStream, len);
+    drive.File driveFile = new drive.File();
+    driveFile.name = "backup.db";
+    String fileId = prefs.getString("driveFileId");
+    if(fileId != null && fileId.isNotEmpty)
+      driveApi.files.delete(fileId);
+    drive.File result = await driveApi.files.create(driveFile, uploadMedia: media);
+    print("Upload result: $result");
+    await prefs.setString("driveFileId", result.id.toString());
+  }
+
   bool patientIndexing = true,
       medicineIndexing = true,
       doseIndexing = true,
       dateIndexing = true;
+
   @override
   Widget build(BuildContext context) {
     double height = MediaQuery.of(context).size.height,
@@ -67,28 +136,35 @@ class _HomeState extends State<Home> {
                 .headline6),
         actions: <Widget>[
           IconButton(
-            icon: Icon(Icons.backup),
+            icon: Icon(Icons.cloud_upload),
             onPressed: () async {
-              bool res = await DatabaseProvider.dp.backup();
-              if (res) {
+              // bool res = await DatabaseProvider.dp.backup();
+              // if (res) {
+              //   showToast(msg: 'Backup Successful');
+              //   // Navigator.pushAndRemoveUntil(
+              //   //     context, MaterialPageRoute(builder: (context) => Home()),
+              //   //     (Route r) {
+              //   //   return r == null;
+              //   // });
+              // } else {
+              //   showToast(msg: 'Backup Failed');
+              //   // Navigator.pushAndRemoveUntil(
+              //   //     context, MaterialPageRoute(builder: (context) => Home()),
+              //   //     (Route r) {
+              //   //   return r == null;
+              //   // });
+              // }
+              try {
+                await uploadFile();
                 showToast(msg: 'Backup Successful');
-                // Navigator.pushAndRemoveUntil(
-                //     context, MaterialPageRoute(builder: (context) => Home()),
-                //     (Route r) {
-                //   return r == null;
-                // });
-              } else {
+              } catch (e) {
+                print("Error uploading backup--------------- $e");
                 showToast(msg: 'Backup Failed');
-                // Navigator.pushAndRemoveUntil(
-                //     context, MaterialPageRoute(builder: (context) => Home()),
-                //     (Route r) {
-                //   return r == null;
-                // });
               }
             },
           ),
           IconButton(
-            icon: Icon(Icons.cloud_download),
+            icon: Icon(Icons.file_download),
             onPressed: () async {
               bool res = await DatabaseProvider.dp.import();
               if (res) {
@@ -160,13 +236,14 @@ class _HomeState extends State<Home> {
                 IconButton(
                   icon: Icon(Icons.file_download),
                   onPressed: () async {
-                    await DatabaseProvider.dp.cc();
+                    // await DatabaseProvider.dp.cc();
+                    await startService();
                   },
                 ),
                 IconButton(
                   icon: Icon(Icons.cancel),
                   onPressed: () async {
-                    await DatabaseProvider.dp.dd();
+                    // await DatabaseProvider.dp.dd();
                   },
                 ),
                 IconButton(
@@ -516,8 +593,7 @@ class _NewEntryState extends State<NewEntry> {
           widget.patient.setPrevMeds = await DatabaseProvider.dp
               .getMedsForPatient(pid: widget.patient.pid);
 
-          if(!mounted)
-            return;
+          if (!mounted) return;
           setState(() {});
         }
       }

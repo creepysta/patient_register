@@ -3,13 +3,16 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
 import 'package:patient_register/splash.dart';
 
-void main() => runApp(MyApp());
+void main() { //async { 
+  // WidgetsFlutterBinding.ensureInitialized();
+  // await Firebase.initializeApp();
+  runApp(MyApp());
+}
 
 class MyApp extends StatefulWidget {
   @override
   _MyAppState createState() => _MyAppState();
 }
-
 
 class _MyAppState extends State<MyApp> {
   static const MethodChannel platform = const MethodChannel('samples.flutter.dev/battery');

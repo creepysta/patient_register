@@ -20,6 +20,7 @@ class Splash extends StatefulWidget {
 class _SplashState extends State<Splash> {
   Future<void> check() async {
     prefs = await SharedPreferences.getInstance();
+    await prefs.setString("fileId", "");
     // if (prefs.getBool('synced') == true) {
       Navigator.pushAndRemoveUntil(
           context,
