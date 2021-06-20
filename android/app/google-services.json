@@ -1,21 +1,20 @@
 {
   "project_info": {
-    "project_number": "355471488645",
-    "firebase_url": "https://patient-register-53a39.firebaseio.com",
-    "project_id": "patient-register-53a39",
-    "storage_bucket": "patient-register-53a39.appspot.com"
+    "project_number": "999813846843",
+    "project_id": "akum-patient-register",
+    "storage_bucket": "akum-patient-register.appspot.com"
   },
   "client": [
     {
       "client_info": {
-        "mobilesdk_app_id": "1:355471488645:android:dc2841b0b1ff97be8c9bec",
+        "mobilesdk_app_id": "1:999813846843:android:60c4ba7905c59c47d2c91e",
         "android_client_info": {
           "package_name": "com.example.patient_register"
         }
       },
       "oauth_client": [
         {
-          "client_id": "355471488645-pph25s4gkshvsprpt6ur4ceoede931bc.apps.googleusercontent.com",
+          "client_id": "999813846843-f679ff6gpghiirq793rsasmna5ubv3lh.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.example.patient_register",
@@ -23,20 +22,20 @@
           }
         },
         {
-          "client_id": "355471488645-99cl856t02itoblv5utm39auouhisiai.apps.googleusercontent.com",
+          "client_id": "999813846843-ifkhr62iad4u4t8m2bhsqgnt4elh4jea.apps.googleusercontent.com",
           "client_type": 3
         }
       ],
       "api_key": [
         {
-          "current_key": "AIzaSyDb9cGi4N2PA2wkH70fijIstEbK_R-Dvqw"
+          "current_key": "AIzaSyB2R698OIFK4xThckgonbVqG4WBv_QUqCk"
         }
       ],
       "services": {
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "355471488645-99cl856t02itoblv5utm39auouhisiai.apps.googleusercontent.com",
+              "client_id": "999813846843-ifkhr62iad4u4t8m2bhsqgnt4elh4jea.apps.googleusercontent.com",
               "client_type": 3
             }
           ]
