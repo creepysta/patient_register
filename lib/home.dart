@@ -167,15 +167,28 @@ class _HomeState extends State<Home> {
           ),
           IconButton(
             icon: Icon(Icons.file_download),
-            onPressed: () async {
-              await download(context);
-              // bool res = await DatabaseProvider.dp.import();
-              // if (res) {
-              //   showToast(msg: 'Database imported');
-              //   await download(context);
-              // } else {
-              //   showToast(msg: 'Import failed');
-              // }
+            onPressed: () {
+              confirmAlert(context,
+                  title: "Import database backup",
+                  content:
+                      "Choose where to import back up from",
+                  confirm: () async {
+                bool res = await DatabaseProvider.dp.import();
+                if (res) {
+                  showToast(msg: 'Database imported');
+                } else {
+                  showToast(msg: 'Import failed');
+                }
+                Navigator.pop(context);
+              }, cancel: () async {
+                bool res = await download(context);
+                if (res) {
+                  showToast(msg: 'Database imported');
+                } else {
+                  showToast(msg: 'Import failed');
+                }
+                Navigator.pop(context);
+              }, confirmString: "Local", cancelString: "Cloud");
             },
           ),
           Visibility(
@@ -436,31 +449,42 @@ class _HomeState extends State<Home> {
     );
   }
 
-  Future<void> download(BuildContext context) async {
+  Future<bool> download(BuildContext context) async {
     User user = globalVars.auth.currentUser;
     if (user == null) {
       globalVars.user = await Navigator.push(
           context, MaterialPageRoute(builder: (context) => AccountPage()));
       user = globalVars.auth.currentUser;
     }
-    File dbFile = File(
-        join((await getApplicationDocumentsDirectory()).path, "register.db"));
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text("Import last Backup?"),
-        action: SnackBarAction(
-          label: "Yes",
-          onPressed: () async {
-            await globalVars.storageRef
-                .child(globalVars.prefs.getString("lastBackup"))
-                .writeToFile(dbFile);
-            ScaffoldMessenger.of(context)
-              ..removeCurrentSnackBar()
-              ..showSnackBar(SnackBar(content: Text('File Downloaded')));
-          },
-        ),
-      ),
-    );
+    // File dbFile = File(
+    //     join((await getApplicationDocumentsDirectory()).path, "register.db"));
+    // ScaffoldMessenger.of(context).showSnackBar(
+    //   SnackBar(
+    //     content: Text("Import last Backup?"),
+    //     action: SnackBarAction(
+    //       label: "Yes",
+    //       onPressed: () async {
+    //         await globalVars.storageRef
+    //             .child(globalVars.prefs.getString("lastBackup"))
+    //             .writeToFile(dbFile);
+    //         ScaffoldMessenger.of(context)
+    //           ..removeCurrentSnackBar()
+    //           ..showSnackBar(SnackBar(content: Text('File Downloaded')));
+    //       },
+    //     ),
+    //   ),
+    // );
+    try { 
+      File dbFile = File(
+          join((await getApplicationDocumentsDirectory()).path, "register.db"));
+      await globalVars.storageRef
+          .child(globalVars.prefs.getString("lastBackup"))
+          .writeToFile(dbFile);
+          return true;
+    } catch (e) {
+      debugPrint("Error occured when downloading file: $e");
+      return false;
+    }
   }
 
   Future<void> backUp(BuildContext context) async {
@@ -924,6 +948,8 @@ void showToast({@required String msg}) {
 void confirmAlert(BuildContext context,
     {String title = '',
     String content = '',
+    String cancelString = 'Cancel',
+    String confirmString = 'Confirm',
     Function cancel,
     Function confirm}) {
   showDialog(
@@ -934,11 +960,11 @@ void confirmAlert(BuildContext context,
           content: Text(content),
           actions: <Widget>[
             ElevatedButton(
-              child: Text('Cancel'),
+              child: Text(cancelString),
               onPressed: cancel,
             ),
             ElevatedButton(
-              child: Text('Confirm'),
+              child: Text(confirmString),
               onPressed: confirm,
             ),
           ],
@@ -1099,12 +1125,9 @@ class _AccountPageState extends State<AccountPage> {
           .signInWithEmailAndPassword(email: _email, password: _password);
       User user = userCredential.user;
       print(user.displayName);
-      Navigator.pop(context);
       ScaffoldMessenger.of(context)
           .showSnackBar(new SnackBar(content: Text("Successfully logged in")));
       Navigator.pop(context, userCredential.user);
-      // Navigator.push(
-      //     context, MaterialPageRoute(builder: (context) => Home(user: user)));
     }
   }
 }
