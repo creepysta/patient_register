@@ -1,6 +1,4 @@
 import 'dart:io';
-import 'package:path/path.dart';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
@@ -8,26 +6,29 @@ import 'package:fluttertoast/fluttertoast.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
-import 'package:patient_register/globals.dart';
+import 'package:path/path.dart';
+import 'package:patient_register/globals.dart' as globalVars;
 import 'package:patient_register/local_store.dart';
 import 'package:patient_register/medicine.dart';
 import 'package:patient_register/patient.dart';
 import 'package:flutter/services.dart';
-import 'package:http/http.dart' as http;
-import 'package:googleapis/drive/v3.dart' as drive;
-import 'package:google_sign_in/google_sign_in.dart' as signIn;
+import 'package:firebase_auth/firebase_auth.dart';
 
-class GoogleAuthClient extends http.BaseClient {
-  final Map<String, String> _headers;
+// import 'package:http/http.dart' as http;
+// import 'package:googleapis/drive/v3.dart' as drive;
+// import 'package:google_sign_in/google_sign_in.dart' as signIn;
 
-  final http.Client _client = new http.Client();
+// class GoogleAuthClient extends http.BaseClient {
+//   final Map<String, String> _headers;
 
-  GoogleAuthClient(this._headers);
+//   final http.Client _client = new http.Client();
 
-  Future<http.StreamedResponse> send(http.BaseRequest request) {
-    return _client.send(request..headers.addAll(_headers));
-  }
-}
+//   GoogleAuthClient(this._headers);
+
+//   Future<http.StreamedResponse> send(http.BaseRequest request) {
+//     return _client.send(request..headers.addAll(_headers));
+//   }
+// }
 
 class Home extends StatefulWidget {
   @override
@@ -47,7 +48,7 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
-    refHome.addListener(() async {
+    globalVars.refHome.addListener(() async {
       if (_hasSearched) {
         patients.clear();
         List res = await DatabaseProvider.dp.search(nameController.text);
@@ -56,14 +57,14 @@ class _HomeState extends State<Home> {
         setState(() {});
       }
     });
-    downloadNot.addListener(() {
-      if (downloadNot.value)
+    globalVars.downloadNot.addListener(() {
+      if (globalVars.downloadNot.value)
         syncIcon = Icons.file_download;
       else
         syncIcon = Icons.sync;
       setState(() {});
     });
-    if (downloadNot.value) {
+    if (globalVars.downloadNot.value) {
       syncIcon = Icons.file_download;
     } else {
       syncIcon = Icons.sync;
@@ -91,30 +92,30 @@ class _HomeState extends State<Home> {
     // print("User account $account");
   }
 
-  Future<void> uploadFile() async {
-    final googleSignIn =
-        signIn.GoogleSignIn.standard(scopes: [drive.DriveApi.driveScope]);
-    final signIn.GoogleSignInAccount account = await googleSignIn.signIn();
-    print("User account $account");
-// file
-    final authHeaders = await account.authHeaders;
-    final authenticateClient = GoogleAuthClient(authHeaders);
-    final driveApi = drive.DriveApi(authenticateClient);
-    File toUpload = File(
-        join((await getApplicationDocumentsDirectory()).path, "register.db"));
-    Stream<List<int>> mediaStream =
-        toUpload.openRead().asBroadcastStream();
-    int len = toUpload.lengthSync();
-    drive.Media media = new drive.Media(mediaStream, len);
-    drive.File driveFile = new drive.File();
-    driveFile.name = "backup.db";
-    String fileId = prefs.getString("driveFileId");
-    if(fileId != null && fileId.isNotEmpty)
-      driveApi.files.delete(fileId);
-    drive.File result = await driveApi.files.create(driveFile, uploadMedia: media);
-    print("Upload result: $result");
-    await prefs.setString("driveFileId", result.id.toString());
-  }
+//   Future<void> uploadFile() async {
+//     final googleSignIn =
+//         signIn.GoogleSignIn.standard(scopes: [drive.DriveApi.driveScope]);
+//     final signIn.GoogleSignInAccount account = await googleSignIn.signIn();
+//     print("User account $account");
+// // file
+//     final authHeaders = await account.authHeaders;
+//     final authenticateClient = GoogleAuthClient(authHeaders);
+//     final driveApi = drive.DriveApi(authenticateClient);
+//     File toUpload = File(
+//         join((await getApplicationDocumentsDirectory()).path, "register.db"));
+//     Stream<List<int>> mediaStream =
+//         toUpload.openRead().asBroadcastStream();
+//     int len = toUpload.lengthSync();
+//     drive.Media media = new drive.Media(mediaStream, len);
+//     drive.File driveFile = new drive.File();
+//     driveFile.name = "backup.db";
+//     String fileId = prefs.getString("driveFileId");
+//     if(fileId != null && fileId.isNotEmpty)
+//       driveApi.files.delete(fileId);
+//     drive.File result = await driveApi.files.create(driveFile, uploadMedia: media);
+//     print("Upload result: $result");
+//     await prefs.setString("driveFileId", result.id.toString());
+//   }
 
   bool patientIndexing = true,
       medicineIndexing = true,
@@ -155,7 +156,8 @@ class _HomeState extends State<Home> {
               //   // });
               // }
               try {
-                await uploadFile();
+                // await uploadFile();
+                await backUp(context);
                 showToast(msg: 'Backup Successful');
               } catch (e) {
                 print("Error uploading backup--------------- $e");
@@ -166,29 +168,26 @@ class _HomeState extends State<Home> {
           IconButton(
             icon: Icon(Icons.file_download),
             onPressed: () async {
-              bool res = await DatabaseProvider.dp.import();
-              if (res) {
-                showToast(msg: 'Database imported');
-                // Navigator.pushAndRemoveUntil(
-                //     context, MaterialPageRoute(builder: (context) => Home()),
-                //     (Route r) {
-                //   return r.isFirst;
-                // });
-              } else {
-                showToast(msg: 'Import failed');
-              }
+              await download(context);
+              // bool res = await DatabaseProvider.dp.import();
+              // if (res) {
+              //   showToast(msg: 'Database imported');
+              //   await download(context);
+              // } else {
+              //   showToast(msg: 'Import failed');
+              // }
             },
           ),
-          // Visibility(
-          //   visible: !kReleaseMode,
-          //   child: IconButton(
-          //     icon: Icon(Icons.delete),
-          //     onPressed: () async {
-          //       await DatabaseProvider.dp.wipe();
-          //       downloadNot.value = true;
-          //     },
-          //   ),
-          // ),
+          Visibility(
+            visible: !kReleaseMode,
+            child: IconButton(
+              icon: Icon(Icons.delete),
+              onPressed: () async {
+                await DatabaseProvider.dp.wipe();
+                // downloadNot.value = true;
+              },
+            ),
+          ),
           // IconButton(
           //   icon: downloadNot.value
           //       ? Icon(syncIcon, color: Colors.white)
@@ -243,7 +242,7 @@ class _HomeState extends State<Home> {
                 IconButton(
                   icon: Icon(Icons.cancel),
                   onPressed: () async {
-                    // await DatabaseProvider.dp.dd();
+                    await DatabaseProvider.dp.dd();
                   },
                 ),
                 IconButton(
@@ -436,6 +435,52 @@ class _HomeState extends State<Home> {
       ),
     );
   }
+
+  Future<void> download(BuildContext context) async {
+    User user = globalVars.auth.currentUser;
+    if (user == null) {
+      globalVars.user = await Navigator.push(
+          context, MaterialPageRoute(builder: (context) => AccountPage()));
+      user = globalVars.auth.currentUser;
+    }
+    File dbFile = File(
+        join((await getApplicationDocumentsDirectory()).path, "register.db"));
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text("Import last Backup?"),
+        action: SnackBarAction(
+          label: "Yes",
+          onPressed: () async {
+            await globalVars.storageRef
+                .child(globalVars.prefs.getString("lastBackup"))
+                .writeToFile(dbFile);
+            ScaffoldMessenger.of(context)
+              ..removeCurrentSnackBar()
+              ..showSnackBar(SnackBar(content: Text('File Downloaded')));
+          },
+        ),
+      ),
+    );
+  }
+
+  Future<void> backUp(BuildContext context) async {
+    User user = globalVars.auth.currentUser;
+    if (user == null) {
+      globalVars.user = await Navigator.push(
+          context, MaterialPageRoute(builder: (context) => AccountPage()));
+      user = globalVars.auth.currentUser;
+    }
+    File dbFile = File(
+        join((await getApplicationDocumentsDirectory()).path, "register.db"));
+    var uploadRes = await globalVars.storageRef
+        .child("backup/db/${user.uid}/${dbFile.uri.pathSegments.last}")
+        .putFile(dbFile);
+    // String downloadUrl = await uploadRes.ref.getDownloadURL();
+    // await globalVars.prefs.setString("lastBackup", downloadUrl);
+    await globalVars.prefs.setString(
+        "lastBackup", "backup/db/${user.uid}/${dbFile.uri.pathSegments.last}");
+    print("File Uploaded: ${uploadRes.ref.name}");
+  }
 }
 
 Widget patientTile(BuildContext context, {Patient patient}) {
@@ -454,7 +499,7 @@ Widget patientTile(BuildContext context, {Patient patient}) {
           content: 'Are you sure?',
           confirm: () async {
             await DatabaseProvider.dp.deletePatient(pid: patient.pid);
-            refHome.value = DateTime.now().millisecondsSinceEpoch;
+            globalVars.refHome.value = DateTime.now().millisecondsSinceEpoch;
             Navigator.pop(context);
           },
           cancel: () => Navigator.pop(context));
@@ -526,6 +571,7 @@ Widget patientTile(BuildContext context, {Patient patient}) {
 }
 
 Widget medTile(BuildContext context, {Medicine med}) {
+  // ignore: unused_local_variable
   double height = MediaQuery.of(context).size.height,
       width = MediaQuery.of(context).size.width;
   return Container(
@@ -583,10 +629,9 @@ class _NewEntryState extends State<NewEntry> {
 
   @override
   void initState() {
-    // TODO: implement initState
     super.initState();
     buildPatient();
-    refMeds.addListener(() async {
+    globalVars.refMeds.addListener(() async {
       print('---------------refMeds called------------');
       if (widget.patient != null) {
         if (widget.patient.pid != null) {
@@ -666,8 +711,8 @@ class _NewEntryState extends State<NewEntry> {
               }
             }
           }
-          refHome.value = DateTime.now().millisecondsSinceEpoch;
-          downloadNot.value = false;
+          globalVars.refHome.value = DateTime.now().millisecondsSinceEpoch;
+          globalVars.downloadNot.value = false;
           Navigator.pop(context);
         },
         child: Icon(Icons.done, color: Colors.white),
@@ -826,7 +871,8 @@ Widget formFields(BuildContext context,
     String text = '',
     bool isenabled = true}) {
   double height = MediaQuery.of(context).size.height,
-      witdth = MediaQuery.of(context).size.width;
+      // ignore: unused_local_variable
+      width = MediaQuery.of(context).size.width;
   if (controller == null) {
     controller = TextEditingController();
     controller.text = text;
@@ -887,11 +933,11 @@ void confirmAlert(BuildContext context,
           title: Text(title),
           content: Text(content),
           actions: <Widget>[
-            FlatButton(
+            ElevatedButton(
               child: Text('Cancel'),
               onPressed: cancel,
             ),
-            FlatButton(
+            ElevatedButton(
               child: Text('Confirm'),
               onPressed: confirm,
             ),
@@ -962,3 +1008,103 @@ void confirmAlert(BuildContext context,
 //       ],
 //     );
 //   }
+
+class AccountPage extends StatefulWidget {
+  const AccountPage({Key key}) : super(key: key);
+
+  @override
+  _AccountPageState createState() => _AccountPageState();
+}
+
+class _AccountPageState extends State<AccountPage> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  String _email, _password;
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text("Sign In"),
+      ),
+      body: Form(
+        key: _formKey,
+        child: Column(
+          children: <Widget>[
+            TextFormField(
+              // ignore: missing_return
+              validator: (String val) {
+                if (val.isEmpty) {
+                  return "Please provide email";
+                }
+                // return "";
+              },
+              onSaved: (val) => _email = val.trim(),
+              decoration: InputDecoration(
+                labelText: "Email",
+              ),
+            ),
+            TextFormField(
+              // ignore: missing_return
+              validator: (String val) {
+                if (val.isEmpty) {
+                  return "Please provide password";
+                }
+                // return "";
+              },
+              onSaved: (val) => _password = val.trim(),
+              decoration: InputDecoration(labelText: "Password"),
+              obscureText: true,
+            ),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () => signUp(context),
+                  child: Text("Register"),
+                ),
+                ElevatedButton(
+                  onPressed: () => signIn(context),
+                  child: Text("Sign In"),
+                ),
+                // ElevatedButton(
+                //   onPressed: () => startService(
+                //       email: "sam@example.com",
+                //       password: "sam123",
+                //       method: accountMethods[Account.SignIn.index]),
+                //   child: Text("Method Channel"),
+                // ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> signUp(BuildContext context) async {
+    final formState = _formKey.currentState;
+    if (formState.validate()) {
+      formState.save();
+      await globalVars.auth
+          .createUserWithEmailAndPassword(email: _email, password: _password);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(new SnackBar(content: Text("Please Log in")));
+    }
+  }
+
+  Future<void> signIn(BuildContext context) async {
+    final formState = _formKey.currentState;
+    if (formState.validate()) {
+      formState.save();
+      UserCredential userCredential = await globalVars.auth
+          .signInWithEmailAndPassword(email: _email, password: _password);
+      User user = userCredential.user;
+      print(user.displayName);
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context)
+          .showSnackBar(new SnackBar(content: Text("Successfully logged in")));
+      Navigator.pop(context, userCredential.user);
+      // Navigator.push(
+      //     context, MaterialPageRoute(builder: (context) => Home(user: user)));
+    }
+  }
+}

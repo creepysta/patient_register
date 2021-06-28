@@ -14,14 +14,6 @@
       },
       "oauth_client": [
         {
-          "client_id": "999813846843-f679ff6gpghiirq793rsasmna5ubv3lh.apps.googleusercontent.com",
-          "client_type": 1,
-          "android_info": {
-            "package_name": "com.example.patient_register",
-            "certificate_hash": "99a5a45395c7a3c929a61fd741a13410f6bf5e91"
-          }
-        },
-        {
           "client_id": "999813846843-ifkhr62iad4u4t8m2bhsqgnt4elh4jea.apps.googleusercontent.com",
           "client_type": 3
         }

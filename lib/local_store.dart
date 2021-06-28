@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:convert';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/foundation.dart';
 import 'package:path/path.dart';
@@ -7,9 +6,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:patient_register/globals.dart';
 import 'package:patient_register/medicine.dart';
 import 'package:patient_register/patient.dart';
-import 'package:patient_register/splash.dart';
 import 'package:sqflite/sqflite.dart';
-import 'package:intl/intl.dart';
+// import 'package:intl/intl.dart';
 import 'package:mongo_dart/mongo_dart.dart';
 
 class DatabaseProvider {
@@ -234,7 +232,8 @@ class DatabaseProvider {
 
   Future<bool> import() async {
     try {
-      File file = await FilePicker.getFile();
+      FilePickerResult res = await FilePicker.platform.pickFiles();
+      File file = File(res.files.single.path);
       Directory rootStore = await getApplicationDocumentsDirectory();
       String dbPath = join(rootStore.path, 'register.db');
       File db = File(dbPath);

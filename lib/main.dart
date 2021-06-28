@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/services.dart';
+import 'package:patient_register/globals.dart' as globalVars;
 import 'package:patient_register/splash.dart';
+import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:firebase_storage/firebase_storage.dart' as firebaseStorage;
 
-void main() { //async { 
-  // WidgetsFlutterBinding.ensureInitialized();
-  // await Firebase.initializeApp();
+void main() async { 
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp();
+  globalVars.auth = FirebaseAuth.instance;
+  globalVars.storageRef = firebaseStorage.FirebaseStorage.instance.ref();
   runApp(MyApp());
 }
 
